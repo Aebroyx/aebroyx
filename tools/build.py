@@ -181,7 +181,8 @@ def short(n: int) -> str:
 
 
 def stats(compact: bool = False) -> dict[str, str]:
-    names = ("repos", "contributed", "stars", "commits", "contributions", "followers", "loc", "added", "deleted")
+    names = ("repos", "stars", "commits", "contributions", "streak", "best_streak",
+             "followers", "loc", "added", "deleted")
     raw = json.loads(STATS.read_text()) if STATS.exists() else {}
     fmt = short if compact else (lambda n: f"{n:,}")
     return {k: fmt(raw[k]) if isinstance(raw.get(k), int) else "--" for k in names}
@@ -201,12 +202,20 @@ def panel_rows() -> list[list | None]:
     rows += [kv(k, v) for k, v in CFG["contact"]]
     rows += [None, rule("GitHub Stats", lead="- ")]
     rows.append([(". ", "dots"), *key("Repos"), (": ", None), Fill(), (" ", None),
-                 (st["repos"], "value"), (" {", None), ("Contributed", "key"), (": ", None),
-                 (st["contributed"], "value"), ("} | ", None), *key("Stars"), (": ", None),
-                 Fill(), (" ", None), (st["stars"], "value")])
-    rows.append([(". ", "dots"), *key("Contributions"), (": ", None), Fill(), (" ", None),
-                 (st["contributions"], "value"), (" | ", None), *key("Followers"), (": ", None),
-                 Fill(), (" ", None), (st["followers"], "value")])
+                 (st["repos"], "value"), (" | ", None), *key("Stars"), (": ", None),
+                 Fill(), (" ", None), (st["stars"], "value"), (" | ", None),
+                 *key("Followers"), (": ", None), Fill(), (" ", None), (st["followers"], "value")])
+    def streak_row(now: str, best: str) -> list:
+        return [(". ", "dots"), *key("Contributions"), (": ", None), Fill(), (" ", None),
+                (st["contributions"], "value"), (" | ", None), *key("Streak"), (": ", None),
+                Fill(), (" ", None), (now, "value"), (" (best ", None), (best, "value"),
+                (")", None)]
+
+    days = "day" if st["streak"] == "1" else "days"
+    row = streak_row(f"{st['streak']} {days}", st["best_streak"])
+    if not fits(row):
+        row = streak_row(st["streak"] + "d", st["best_streak"] + "d")
+    rows.append(row)
     def loc_row(st: dict) -> list:
         return [(". ", "dots"), *key("Lines of Code"), (": ", None), Fill(), (" ", None),
                 (st["loc"], "value"), (" ( ", None), (st["added"] + "++", "add"),
