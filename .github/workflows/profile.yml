@@ -35,6 +35,9 @@ jobs:
       - run: pip install requests
 
       - name: Fetch GitHub stats
+        # If GitHub's API has a bad day, still rebuild everything else with
+        # the last saved numbers instead of failing the whole update.
+        continue-on-error: true
         env:
           # Optional: add a STATS_TOKEN secret (a personal access token) to also
           # count private repos. Without it, public numbers are used.
