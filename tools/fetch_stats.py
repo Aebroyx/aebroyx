@@ -18,7 +18,7 @@ import json
 import os
 import sys
 import time
-from datetime import datetime, timezone
+from datetime import date, datetime, timedelta, timezone
 from pathlib import Path
 
 import requests
@@ -78,7 +78,6 @@ query($login: String!, $cursor: String) {
     id
     createdAt
     followers { totalCount }
-    repositoriesContributedTo(contributionTypes: [COMMIT, PULL_REQUEST, REPOSITORY]) { totalCount }
     repositories(ownerAffiliations: OWNER, isFork: false, first: 100, after: $cursor) {
       totalCount
       pageInfo { hasNextPage endCursor }
@@ -97,7 +96,9 @@ query($login: String!, $from: DateTime!, $to: DateTime!) {
   user(login: $login) {
     contributionsCollection(from: $from, to: $to) {
       totalCommitContributions
-      contributionCalendar { totalContributions }
+      contributionCalendar {
+        weeks { contributionDays { date contributionCount } }
+      }
     }
   }
 }
@@ -129,8 +130,38 @@ def user_and_repos() -> tuple[dict, list[dict]]:
         cursor = page["endCursor"]
 
 
-def contributions(since: str) -> tuple[int, int]:
-    """(public commits, all contributions) since the account was made.
+def streaks(days: dict[str, int], today: str) -> tuple[int, int]:
+    """(current, longest) run of days with at least one contribution.
+
+    Today doesn't break the current streak until it's over, so a streak
+    still counts if you haven't contributed yet today.
+    """
+    dates = sorted(d for d in days if d <= today)
+    longest = run = 0
+    prev = None
+    for d in dates:
+        if days[d] > 0:
+            ok = prev and (date.fromisoformat(d) - date.fromisoformat(prev)).days == 1
+            run = run + 1 if ok else 1
+            longest = max(longest, run)
+            prev = d
+    current = 0
+    day = date.fromisoformat(today)
+    if days.get(today, 0) == 0:
+        day -= timedelta(days=1)
+    while days.get(day.isoformat(), 0) > 0:
+        current += 1
+        day -= timedelta(days=1)
+    return current, longest
+
+
+def contributions(since: str) -> dict[str, int]:
+    """Public commits, all contributions and streaks since the account was made.
+
+    The contribution total matches the one on your GitHub profile: commits,
+    PRs, issues and reviews, plus private work if "Private contributions" is
+    turned on in your profile settings (GitHub shows those as anonymous
+    counts, so no extra token is needed).
 
     The second number matches the total on your GitHub profile: commits, PRs,
     issues and reviews, plus private work if "Private contributions" is turned
@@ -139,16 +170,23 @@ def contributions(since: str) -> tuple[int, int]:
     # GitHub only answers one year at a time here.
     start = datetime.fromisoformat(since.replace("Z", "+00:00"))
     now = datetime.now(timezone.utc)
-    commits = total = 0
+    commits = 0
+    days: dict[str, int] = {}
     while start < now:
         end = min(start.replace(year=start.year + 1, day=min(start.day, 28)), now)
         c = gql(COMMITS_Q, login=LOGIN,
                 **{"from": start.isoformat(), "to": end.isoformat()})
         cc = c["user"]["contributionsCollection"]
         commits += cc["totalCommitContributions"]
-        total += cc["contributionCalendar"]["totalContributions"]
+        # Totals come from the days, so a day on the edge of two windows
+        # isn't counted twice.
+        for week in cc["contributionCalendar"]["weeks"]:
+            for d in week["contributionDays"]:
+                if start.date().isoformat() <= d["date"] <= end.date().isoformat():
+                    days[d["date"]] = max(days.get(d["date"], 0), d["contributionCount"])
         start = end
-    return commits, total
+    streak, best = streaks(days, now.date().isoformat())
+    return {"commits": commits, "contributions": sum(days.values()), "streak": streak, "best_streak": best}
 
 
 def count_repo(name: str, author_id: str) -> tuple[int, int]:
@@ -213,13 +251,10 @@ def main() -> None:
 
     user, repos = user_and_repos()
     added, deleted, skipped = lines_of_code(repos, user["id"])
-    commits, total = contributions(user["createdAt"])
     stats = {
         "repos": user["repositories"]["totalCount"],
-        "contributed": user["repositoriesContributedTo"]["totalCount"],
         "stars": sum(r["stargazerCount"] for r in repos),
-        "commits": commits,
-        "contributions": total,
+        **contributions(user["createdAt"]),
         "followers": user["followers"]["totalCount"],
         "loc": added - deleted,
         "added": added,
