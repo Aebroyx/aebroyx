@@ -16,6 +16,7 @@
     null,
     ["Focus.Web", "Next.js, React, Express, Prisma, Gin"],
     ["Focus.Data", "MySQL, PostgreSQL, MongoDB, Redis"],
+    ["Focus.Product", "UI/UX, CMS, dashboards, e-commerce"],
     ["Focus.Systems", "SAP & ERP integrations"]
   ],
 
