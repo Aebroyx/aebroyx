@@ -1,0 +1,13 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="488" height="56" viewBox="0 0 488 56" font-family="'JetBrains Mono','SF Mono',Menlo,Consolas,'DejaVu Sans Mono','Liberation Mono',monospace">
+<defs>
+<clipPath id="bar"><rect x="16" y="48" width="450" height="2" rx="1"/></clipPath>
+<linearGradient id="glow"><stop offset="0" stop-color="#fff" stop-opacity="0"/><stop offset=".5" stop-color="#fff" stop-opacity=".95"/><stop offset="1" stop-color="#fff" stop-opacity="0"/></linearGradient>
+</defs>
+<rect x="0.5" y=".5" width="481" height="55" rx="10" fill="#ffffff" stroke="#ddd5ee"/>
+<rect x="16" y="48" width="450" height="2" rx="1" fill="#2f8a00" opacity=".7"/>
+<g clip-path="url(#bar)"><rect x="-74" y="48" width="90" height="2" fill="url(#glow)">
+<animate attributeName="x" values="-74;466;466" keyTimes="0;.35;1" dur="4.5s" begin="0.0s" repeatCount="indefinite"/>
+</rect></g>
+<g transform="translate(172.5 18)"><clipPath id="ic"><path d="M0 0h12v2h-12zM16 0h10v2h-10zM0 2h2v2h-2zM12 2h4v2h-4zM24 2h2v2h-2zM0 4h2v2h-2zM14 4h2v2h-2zM26 4h2v2h-2zM2 6h10v2h-10zM14 6h2v2h-2zM24 6h2v2h-2zM12 8h12v2h-12zM12 10h2v2h-2zM0 12h2v2h-2zM12 12h2v2h-2zM2 14h10v2h-10z"/></clipPath><path d="M0 0h12v2h-12zM16 0h10v2h-10zM0 2h2v2h-2zM12 2h4v2h-4zM24 2h2v2h-2zM0 4h2v2h-2zM14 4h2v2h-2zM26 4h2v2h-2zM2 6h10v2h-10zM14 6h2v2h-2zM24 6h2v2h-2zM12 8h12v2h-12zM12 10h2v2h-2zM0 12h2v2h-2zM12 12h2v2h-2zM2 14h10v2h-10z" fill="#2f8a00"/><g clip-path="url(#ic)"><rect x="0" y="-4" width="40" height="3" fill="#fff" opacity=".8"><animate attributeName="y" values="-4;18;18" keyTimes="0;.3;1" dur="3.2s" repeatCount="indefinite"/></rect></g></g>
+<text x="212.5" y="31.4" font-size="15px" letter-spacing="2" fill="#2a2440">PORTFOLIO</text>
+</svg>

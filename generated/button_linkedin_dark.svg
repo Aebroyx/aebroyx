@@ -1,0 +1,13 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="488" height="56" viewBox="0 0 488 56" font-family="'JetBrains Mono','SF Mono',Menlo,Consolas,'DejaVu Sans Mono','Liberation Mono',monospace">
+<defs>
+<clipPath id="bar"><rect x="22" y="48" width="450" height="2" rx="1"/></clipPath>
+<linearGradient id="glow"><stop offset="0" stop-color="#fff" stop-opacity="0"/><stop offset=".5" stop-color="#fff" stop-opacity=".95"/><stop offset="1" stop-color="#fff" stop-opacity="0"/></linearGradient>
+</defs>
+<rect x="6.5" y=".5" width="481" height="55" rx="10" fill="#0c0a12" stroke="#2a2140"/>
+<rect x="22" y="48" width="450" height="2" rx="1" fill="#b48cff" opacity=".7"/>
+<g clip-path="url(#bar)"><rect x="-68" y="48" width="90" height="2" fill="url(#glow)">
+<animate attributeName="x" values="-68;472;472" keyTimes="0;.35;1" dur="4.5s" begin="0.5s" repeatCount="indefinite"/>
+</rect></g>
+<g transform="translate(189 17)"><g><animateTransform attributeName="transform" type="translate" values="0 0;0 -2;0 0" keyTimes="0;.82;.9" dur="2.4s" calcMode="discrete" repeatCount="indefinite"/><path d="M2 0h14v2h-14zM0 2h18v2h-18zM0 4h2v2h-2zM4 4h4v2h-4zM10 4h8v2h-8zM0 6h18v2h-18zM0 8h2v2h-2zM4 8h4v2h-4zM14 8h4v2h-4zM0 10h2v2h-2zM4 10h4v2h-4zM10 10h2v2h-2zM14 10h4v2h-4zM0 12h2v2h-2zM4 12h4v2h-4zM10 12h2v2h-2zM14 12h4v2h-4zM0 14h18v2h-18zM2 16h14v2h-14z" fill="#b48cff"/></g></g>
+<text x="219" y="31.4" font-size="15px" letter-spacing="2" fill="#cfc8e0">LINKEDIN</text>
+</svg>
