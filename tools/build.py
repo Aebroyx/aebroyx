@@ -341,9 +341,12 @@ text {{white-space: pre;}}
 
 
 # --- Link buttons -------------------------------------------------------------
+# Each button is its own image, one equal share of the card's width; the gaps
+# between them are drawn inside the images so the row lines up with the card.
 GAP = 12
-BTN_W = (CARD_W - 2 * GAP) / 3
-SLOT_W = CARD_W / 3
+BTN_COUNT = len(CFG["buttons"])
+BTN_W = (CARD_W - (BTN_COUNT - 1) * GAP) / BTN_COUNT
+SLOT_W = CARD_W / BTN_COUNT
 BTN_H = 56
 PX = 2                               # one icon pixel
 
@@ -423,7 +426,7 @@ def build_button(theme: str, slot: int) -> str:
     c = THEMES[theme]
     name, label = CFG["buttons"][slot]
     accent = {"portfolio": c["key"], "linkedin": c["linkedin"], "email": c["email"]}[name]
-    x = slot * GAP / 3              # where this button sits inside its third of the row
+    x = slot * GAP / BTN_COUNT      # where this button sits inside its share of the row
     art = bitmap(ICONS[name])
     icon_w, icon_h = len(art[0]) * PX, len(art) * PX
     font = 15

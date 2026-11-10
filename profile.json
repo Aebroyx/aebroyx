@@ -4,31 +4,28 @@
   "uptime_since": "2018-07-15",
 
   "info": [
-    ["OS", "macOS, Linux"],
+    ["OS", "macOS, Windows, Linux"],
     ["Uptime", "{uptime}"],
-    ["Host", "Indonesia"],
+    ["Host", "Vancouver, Canada"],
     ["Kernel", "Software Engineer, Fullstack"],
-    ["Work", "Trendier AI"],
-    ["IDE", "VS Code, Claude Code"],
+    ["IDE", "VS Code, Cursor, Claude Code"],
     null,
     ["Languages.Programming", "TypeScript, Go, Python"],
     ["Languages.Computer", "HTML, CSS, SQL"],
-    ["Languages.Real", "Indonesian, English"],
+    ["Languages.Real", "English"],
     null,
-    ["Focus.Web", "Next.js, React, Express, Prisma"],
-    ["Focus.Data", "MySQL, PostgreSQL, Redis"],
+    ["Focus.Web", "Next.js, React, Express, Prisma, Gin"],
+    ["Focus.Data", "MySQL, PostgreSQL, MongoDB, Redis"],
     ["Focus.Systems", "SAP & ERP integrations"]
   ],
 
   "contact": [
-    ["Email", "sangalabror@gmail.com"],
     ["LinkedIn", "sangalabrorpujianto"],
     ["Portfolio", "sangalabror.aebroyx.dev"]
   ],
 
   "buttons": [
     ["portfolio", "PORTFOLIO"],
-    ["linkedin", "LINKEDIN"],
-    ["email", "EMAIL"]
+    ["linkedin", "LINKEDIN"]
   ]
 }
