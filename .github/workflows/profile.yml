@@ -1,0 +1,63 @@
+# Rebuilds the profile README images: the terminal card, the link buttons and
+# the Pac-Man contribution graph. Runs daily, when you press "Run workflow",
+# and whenever profile.json or the build scripts change.
+name: Update profile
+
+on:
+  schedule:
+    - cron: "0 0 * * *"
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths:
+      - "profile.json"
+      - "tools/**"
+      - ".github/workflows/profile.yml"
+
+permissions:
+  contents: write
+
+concurrency:
+  group: profile
+  cancel-in-progress: false
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - run: pip install requests
+
+      - name: Fetch GitHub stats
+        env:
+          # Optional: add a STATS_TOKEN secret (a personal access token) to also
+          # count private repos. Without it, public numbers are used.
+          GITHUB_TOKEN: ${{ secrets.STATS_TOKEN || secrets.GITHUB_TOKEN }}
+        run: python tools/fetch_stats.py
+
+      - name: Generate Pac-Man graph
+        uses: abozanona/pacman-contribution-graph@v5.3.2
+        with:
+          github_user_name: ${{ github.repository_owner }}
+
+      - name: Build SVGs
+        run: python tools/build.py
+
+      - name: Commit changes
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add generated cache
+          if git diff --cached --quiet; then
+            echo "Nothing changed"
+          else
+            git commit -m "chore: refresh profile card"
+            git pull --rebase origin main
+            git push
+          fi

@@ -1,0 +1,34 @@
+{
+  "login": "Aebroyx",
+  "title": "sangalabror@aebroyx",
+  "uptime_since": "2018-07-15",
+
+  "info": [
+    ["OS", "macOS, Linux"],
+    ["Uptime", "{uptime}"],
+    ["Host", "Indonesia"],
+    ["Kernel", "Software Engineer, Fullstack"],
+    ["Work", "Trendier AI"],
+    ["IDE", "VS Code, Claude Code"],
+    null,
+    ["Languages.Programming", "TypeScript, Go, Python"],
+    ["Languages.Computer", "HTML, CSS, SQL"],
+    ["Languages.Real", "Indonesian, English"],
+    null,
+    ["Focus.Web", "Next.js, React, Express, Prisma"],
+    ["Focus.Data", "MySQL, PostgreSQL, Redis"],
+    ["Focus.Systems", "SAP & ERP integrations"]
+  ],
+
+  "contact": [
+    ["Email", "sangalabror@gmail.com"],
+    ["LinkedIn", "sangalabrorpujianto"],
+    ["Portfolio", "sangalabror.aebroyx.dev"]
+  ],
+
+  "buttons": [
+    ["portfolio", "PORTFOLIO"],
+    ["linkedin", "LINKEDIN"],
+    ["email", "EMAIL"]
+  ]
+}

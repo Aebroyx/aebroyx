@@ -1,0 +1,13 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="325.33" height="56" viewBox="0 0 325.33 56" font-family="'JetBrains Mono','SF Mono',Menlo,Consolas,'DejaVu Sans Mono','Liberation Mono',monospace">
+<defs>
+<clipPath id="bar"><rect x="24" y="48" width="285.33" height="2" rx="1"/></clipPath>
+<linearGradient id="glow"><stop offset="0" stop-color="#fff" stop-opacity="0"/><stop offset=".5" stop-color="#fff" stop-opacity=".95"/><stop offset="1" stop-color="#fff" stop-opacity="0"/></linearGradient>
+</defs>
+<rect x="8.5" y=".5" width="316.33" height="55" rx="10" fill="#0f0d17" stroke="#2b2640"/>
+<rect x="24" y="48" width="285.33" height="2" rx="1" fill="#e8e4fd" opacity=".7"/>
+<g clip-path="url(#bar)"><rect x="-66" y="48" width="90" height="2" fill="url(#glow)">
+<animate attributeName="x" values="-66;309.33;309.33" keyTimes="0;.35;1" dur="4.5s" begin="1.0s" repeatCount="indefinite"/>
+</rect></g>
+<g transform="translate(122.17 18)"><g><animateTransform attributeName="transform" type="translate" values="0 0;-2 0;2 0;-2 0;2 0;0 0" keyTimes="0;.7;.74;.78;.82;.86" dur="3s" calcMode="discrete" repeatCount="indefinite"/><path d="M0 0h24v2h-24zM0 2h4v2h-4zM20 2h4v2h-4zM0 4h2v2h-2zM4 4h2v2h-2zM18 4h2v2h-2zM22 4h2v2h-2zM0 6h2v2h-2zM6 6h2v2h-2zM16 6h2v2h-2zM22 6h2v2h-2zM0 8h2v2h-2zM8 8h8v2h-8zM22 8h2v2h-2zM0 10h2v2h-2zM22 10h2v2h-2zM0 12h2v2h-2zM22 12h2v2h-2zM0 14h24v2h-24z" fill="#e8e4fd"/><path transform="translate(20 -4)" d="M2 0h4v2h-4zM0 2h8v2h-8zM0 4h8v2h-8zM2 6h4v2h-4z" fill="#f85149" opacity="0"><animate attributeName="opacity" values="0;1;1;0" keyTimes="0;.72;.95;1" dur="3s" calcMode="discrete" repeatCount="indefinite"/></path></g></g>
+<text x="158.17" y="31.4" font-size="15px" letter-spacing="2" fill="#c9c6d9">EMAIL</text>
+</svg>
