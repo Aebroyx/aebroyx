@@ -4,11 +4,16 @@ Runs in the GitHub Action with GITHUB_TOKEN set. Lines of code is the slow
 part (it reads every commit you authored), so the per-repo result is cached in
 cache/loc.json and only recomputed when a repo's latest commit changes.
 
+GitHub's API times out on big pages of commit history, so history is read in
+pages that shrink whenever GitHub gives up, and a repo that still fails is
+skipped (keeping its last known count) rather than failing the whole run.
+
     GITHUB_TOKEN=... python tools/fetch_stats.py
 """
 
 from __future__ import annotations
 
+import hashlib
 import json
 import os
 import sys
@@ -30,13 +35,33 @@ API = "https://api.github.com/graphql"
 http = requests.Session()
 
 
-def gql(query: str, **variables) -> dict:
-    for attempt in range(4):
-        r = http.post(API, json={"query": query, "variables": variables},
-                      headers={"Authorization": f"bearer {TOKEN}"}, timeout=60)
-        if r.status_code in (403, 429, 502) and attempt < 3:
-            wait = int(r.headers.get("Retry-After", 30))
-            print(f"  GitHub said {r.status_code}, retrying in {wait}s", file=sys.stderr)
+class GitHubTimeout(Exception):
+    """GitHub gave up on a query (502/504 or a dropped connection)."""
+
+
+def log(msg: str) -> None:
+    print(msg, file=sys.stderr, flush=True)
+
+
+def gql(query: str, attempts: int = 4, **variables) -> dict:
+    problem = ""
+    for attempt in range(attempts):
+        if attempt:
+            time.sleep(min(60, 5 * 2 ** attempt))
+        try:
+            r = http.post(API, json={"query": query, "variables": variables},
+                          headers={"Authorization": f"bearer {TOKEN}"}, timeout=60)
+        except requests.RequestException as e:
+            problem = f"connection dropped ({type(e).__name__})"
+            log(f"  {problem}, retrying")
+            continue
+        if r.status_code in (502, 503, 504):
+            problem = f"GitHub returned {r.status_code}"
+            log(f"  {problem}, retrying")
+            continue
+        if r.status_code in (403, 429):
+            wait = int(r.headers.get("Retry-After", 60))
+            log(f"  rate limited, waiting {wait}s")
             time.sleep(wait)
             continue
         r.raise_for_status()
@@ -44,7 +69,7 @@ def gql(query: str, **variables) -> dict:
         if body.get("errors"):
             raise SystemExit("GraphQL error: " + json.dumps(body["errors"], indent=2))
         return body["data"]
-    raise SystemExit("GitHub kept rate limiting us")
+    raise GitHubTimeout(problem or "rate limited")
 
 
 USER_Q = """
@@ -76,10 +101,10 @@ query($login: String!, $from: DateTime!, $to: DateTime!) {
 """
 
 HISTORY_Q = """
-query($owner: String!, $name: String!, $author: ID!, $cursor: String) {
+query($owner: String!, $name: String!, $author: ID!, $cursor: String, $size: Int!) {
   repository(owner: $owner, name: $name) {
     defaultBranchRef { target { ... on Commit {
-      history(first: 100, after: $cursor, author: {id: $author}) {
+      history(first: $size, after: $cursor, author: {id: $author}) {
         pageInfo { hasNextPage endCursor }
         nodes { additions deletions }
       }
@@ -115,45 +140,68 @@ def total_commits(since: str) -> int:
     return total
 
 
-def lines_of_code(repos: list[dict], author_id: str) -> tuple[int, int]:
-    cache = json.loads(LOC_FILE.read_text()) if LOC_FILE.exists() else {}
+def count_repo(name: str, author_id: str) -> tuple[int, int]:
+    """Additions/deletions you authored on one repo's default branch."""
+    owner, short = name.split("/", 1)
     added = deleted = 0
+    cursor, size = None, 50
+    while True:
+        try:
+            ref = gql(HISTORY_Q, attempts=2, owner=owner, name=short, author=author_id,
+                      cursor=cursor, size=size)["repository"]["defaultBranchRef"]
+        except GitHubTimeout:
+            if size == 1:
+                raise
+            size = max(1, size // 3)
+            log(f"  {name}: GitHub timed out, retrying {size} commits at a time")
+            continue
+        hist = ref["target"]["history"]
+        for n in hist["nodes"]:
+            added += n["additions"]
+            deleted += n["deletions"]
+        if not hist["pageInfo"]["hasNextPage"]:
+            return added, deleted
+        cursor = hist["pageInfo"]["endCursor"]
+
+
+def lines_of_code(repos: list[dict], author_id: str) -> tuple[int, int, int]:
+    # Keys are hashed so the public cache never reveals private repo names.
+    cache = json.loads(LOC_FILE.read_text()) if LOC_FILE.exists() else {}
+    added = deleted = skipped = 0
     for repo in repos:
         head = ((repo.get("defaultBranchRef") or {}).get("target") or {}).get("oid")
         if not head:
             continue  # empty repo
         name = repo["nameWithOwner"]
-        hit = cache.get(name)
+        key = hashlib.sha256(name.encode()).hexdigest()[:16]
+        hit = cache.get(key)
         if not hit or hit["head"] != head:
-            owner, short = name.split("/", 1)
-            a = d = 0
-            cursor = None
-            while True:
-                ref = gql(HISTORY_Q, owner=owner, name=short, author=author_id,
-                          cursor=cursor)["repository"]["defaultBranchRef"]
-                hist = ref["target"]["history"]
-                for n in hist["nodes"]:
-                    a += n["additions"]
-                    d += n["deletions"]
-                if not hist["pageInfo"]["hasNextPage"]:
-                    break
-                cursor = hist["pageInfo"]["endCursor"]
-            hit = cache[name] = {"head": head, "added": a, "deleted": d}
-            print(f"  counted {name}: +{a:,} -{d:,}")
+            try:
+                a, d = count_repo(name, author_id)
+            except GitHubTimeout as e:
+                skipped += 1
+                log(f"  skipped {name}: {e}" + (" (using last count)" if hit else ""))
+                if hit:
+                    added += hit["added"]
+                    deleted += hit["deleted"]
+                continue
+            hit = cache[key] = {"head": head, "added": a, "deleted": d}
+            log(f"  counted {name}: +{a:,} -{d:,}")
+            LOC_FILE.write_text(json.dumps(cache, indent=2, sort_keys=True))
         added += hit["added"]
         deleted += hit["deleted"]
     LOC_FILE.write_text(json.dumps(cache, indent=2, sort_keys=True))
-    return added, deleted
+    return added, deleted, skipped
 
 
 def main() -> None:
     if not TOKEN:
         raise SystemExit("Set GITHUB_TOKEN first")
     CACHE.mkdir(exist_ok=True)
-    print(f"Fetching stats for {LOGIN}")
+    log(f"Fetching stats for {LOGIN}")
 
     user, repos = user_and_repos()
-    added, deleted = lines_of_code(repos, user["id"])
+    added, deleted, skipped = lines_of_code(repos, user["id"])
     stats = {
         "repos": user["repositories"]["totalCount"],
         "contributed": user["repositoriesContributedTo"]["totalCount"],
@@ -167,6 +215,8 @@ def main() -> None:
     }
     STATS_FILE.write_text(json.dumps(stats, indent=2))
     print(json.dumps(stats, indent=2))
+    if skipped:
+        log(f"::warning::Lines of code skipped {skipped} repo(s) GitHub kept timing out on")
 
 
 if __name__ == "__main__":

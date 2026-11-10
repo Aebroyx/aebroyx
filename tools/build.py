@@ -172,10 +172,24 @@ def uptime() -> str:
     return f"{unit(y, 'year')}, {unit(m, 'month')}, {unit(d, 'day')}"
 
 
-def stats() -> dict[str, str]:
+def short(n: int) -> str:
+    """11352386 -> 11.4M, for numbers too long to fit in full."""
+    for size, unit in ((1e9, "B"), (1e6, "M"), (1e3, "K")):
+        if abs(n) >= size:
+            return f"{n / size:.1f}".rstrip("0").rstrip(".") + unit
+    return str(n)
+
+
+def stats(compact: bool = False) -> dict[str, str]:
     names = ("repos", "contributed", "stars", "commits", "followers", "loc", "added", "deleted")
     raw = json.loads(STATS.read_text()) if STATS.exists() else {}
-    return {k: f"{raw[k]:,}" if isinstance(raw.get(k), int) else "--" for k in names}
+    fmt = short if compact else (lambda n: f"{n:,}")
+    return {k: fmt(raw[k]) if isinstance(raw.get(k), int) else "--" for k in names}
+
+
+def fits(segs: list) -> bool:
+    fixed = sum(len(s[0]) for s in segs if not isinstance(s, Fill))
+    return PANEL_COLS - fixed >= sum(isinstance(s, Fill) for s in segs)
 
 
 def panel_rows() -> list[list | None]:
@@ -193,9 +207,18 @@ def panel_rows() -> list[list | None]:
     rows.append([(". ", "dots"), *key("Commits"), (": ", None), Fill(), (" ", None),
                  (st["commits"], "value"), (" | ", None), *key("Followers"), (": ", None),
                  Fill(), (" ", None), (st["followers"], "value")])
-    rows.append([(". ", "dots"), *key("Lines of Code"), (": ", None), Fill(), (" ", None),
-                 (st["loc"], "value"), (" ( ", None), (st["added"] + "++", "add"),
-                 (", ", None), (st["deleted"] + "--", "del"), (" )", None)])
+    def loc_row(st: dict) -> list:
+        return [(". ", "dots"), *key("Lines of Code"), (": ", None), Fill(), (" ", None),
+                (st["loc"], "value"), (" ( ", None), (st["added"] + "++", "add"),
+                (", ", None), (st["deleted"] + "--", "del"), (" )", None)]
+
+    row = loc_row(st)
+    if not fits(row):
+        sc = stats(compact=True)
+        row = loc_row({**sc, "loc": st["loc"]})
+        if not fits(row):
+            row = loc_row(sc)
+    rows.append(row)
     return rows
 
 
