@@ -3,9 +3,10 @@
     python tools/build.py
 
 Reads profile.json (what the card says) and cache/stats.json (GitHub numbers
-from fetch_stats.py) and writes into generated/:
+from fetch_stats.py) and assets/art.json (the picture, from make_art.py) and
+writes into generated/:
 
-  card_{dark,light}.svg          the terminal card: SP logo + info panel
+  card_{dark,light}.svg          the terminal card: ASCII picture + info panel
   button_<name>_{dark,light}.svg one image per link button
   pacman_{dark,light}.svg        Pac-Man graph recoloured to the card palette
                                  (only when the Pac-Man action left dist/)
@@ -33,35 +34,37 @@ FONT = ("'JetBrains Mono','SF Mono',Menlo,Consolas,'DejaVu Sans Mono',"
 
 # Same glyph set as the GlyphField background on sangalabror.aebroyx.dev.
 FIELD_GLYPHS = "{}[]()<>/\\|=+-*&^%$#@!?;:~.0123456789abcdefABCDEF"
-LOGO_GLYPHS = "#@%&$0B8DHMNQW"
 
+# Purple and neon green, after EVA-01. "tones" colour the ASCII picture (see
+# tools/make_art.py): d outline, 1/2/3 deep/mid/light purple, g green,
+# h highlight, e highlight that pulses green.
 THEMES = {
     "dark": {
-        "bg": "#0f0d17", "border": "#2b2640", "fg": "#c9c6d9",
-        "key": "#9d8afa", "value": "#ece9fb", "dots": "#4a4560",
-        "add": "#3fb950", "del": "#f85149",
-        "field": "#8a86a0", "field_opacity": 0.16, "flash": "#cecafb",
-        "logo": ("#8A73F9", "#B4A3FB", "#E8E4FD"),
-        "linkedin": "#4493f8", "email": "#e8e4fd",
+        "bg": "#0c0a12", "border": "#2a2140", "fg": "#cfc8e0",
+        "key": "#b48cff", "acc": "#8bff3a", "value": "#efeafc", "dots": "#4b3f66",
+        "add": "#8bff3a", "del": "#ff5c7a",
+        "field": "#8c82aa", "field_opacity": 0.12, "flash": ("#b48cff", "#8bff3a"),
+        "tones": {"d": "#4a3a6e", "1": "#8550d8", "2": "#ad7cf5", "3": "#dcc4ff",
+                  "g": "#8bff3a", "h": "#efe6ff", "e": "#efe6ff"},
         # Pac-Man (github-dark) colour -> card colour
-        "pacman": {"#0d1117": "#0f0d17", "#161b22": "#1a1726", "#0e4429": "#2e2457",
-                   "#006d32": "#4b3a9e", "#26a641": "#6f58e6", "#39d353": "#b4a3fb"},
+        "pacman": {"#0d1117": "#0c0a12", "#161b22": "#191426", "#0e4429": "#3b1f6e",
+                   "#006d32": "#6b3fb0", "#26a641": "#5fc21f", "#39d353": "#8bff3a"},
     },
     "light": {
-        "bg": "#ffffff", "border": "#ddd8ee", "fg": "#2a2638",
-        "key": "#6a4ff0", "value": "#1f1b2e", "dots": "#aaa5be",
-        "add": "#1a7f37", "del": "#cf222e",
-        "field": "#6b6680", "field_opacity": 0.2, "flash": "#6a4ff0",
-        "logo": ("#4f33d6", "#7a62f5", "#a08cfa"),
-        "linkedin": "#0a66c2", "email": "#8A73F9",
+        "bg": "#ffffff", "border": "#ddd5ee", "fg": "#2a2440",
+        "key": "#6b35c9", "acc": "#2f8a00", "value": "#1d1830", "dots": "#aaa2c0",
+        "add": "#2f8a00", "del": "#cf222e",
+        "field": "#6b6385", "field_opacity": 0.12, "flash": ("#6b35c9", "#2f8a00"),
+        "tones": {"d": "#3a2a55", "1": "#4a2385", "2": "#7440c4", "3": "#a57de8",
+                  "g": "#3fa000", "h": "#b9a3ea", "e": "#b9a3ea"},
         # Pac-Man (github light) colour -> card colour
-        "pacman": {"#ebedf0": "#eeebf7", "#9be9a8": "#d9d1fd", "#40c463": "#b4a3fb",
-                   "#30a14e": "#8a73f9", "#216e39": "#5b3fe0"},
+        "pacman": {"#ebedf0": "#efeaf7", "#9be9a8": "#d6c4f7", "#40c463": "#9a62d6",
+                   "#30a14e": "#6fcf2a", "#216e39": "#3c9a00"},
     },
 }
 
-# The SP logo is drawn on a 14 x 8 grid (512 / 14 = 36.57, the size of every
-# block in public/SP_WHITE.svg). The two rounded corners are handled below.
+# The SP logo (portfolio button icon) on its 14 x 8 grid: 512 / 14 = 36.57,
+# the size of every block in the portfolio's SP_WHITE.svg.
 SP_LOGO = """
 ######..#####.
 #.....##....#.
@@ -72,7 +75,6 @@ SP_LOGO = """
 #.....#.......
 .#####........
 """
-ROUNDED = {(0, 0): "top-left", (12, 0): "top-right"}
 
 
 def esc(s: str) -> str:
@@ -102,9 +104,12 @@ PANEL_CW = 9.0                      # one panel column
 PANEL_COLS = 56                     # PANEL_X + 56 * 9 + PAD == CARD_W
 LINE = 20
 
-ART_COLS = 66
-ART_CW = ART_W / ART_COLS           # 6px
-ART_LH = 2 * ART_CW                 # a logo block = 4 cols x 2 rows = square
+# The picture sits flush with the card's left and bottom edges and runs up to
+# the panel; its top and right edges fade out into the glyph field.
+ART = json.loads((ROOT / "assets" / "art.json").read_text(encoding="utf-8"))
+IMG_W = PANEL_X - 12
+ART_CW = IMG_W / ART["cols"]
+ART_LH = 2 * ART_CW                 # character cells are twice as tall as wide
 ART_FONT = ART_CW / 0.6
 
 assert PANEL_X + PANEL_COLS * PANEL_CW + PAD == CARD_W
@@ -210,106 +215,135 @@ def build_panel(top: float) -> tuple[str, float]:
         out.append(render_row(parts, y))
     # A prompt waiting for input, with a blinking block cursor.
     i = len(rows) + 1
-    cursor = ('<tspan class="value">█<animate attributeName="fill-opacity" values="1;0" '
+    cursor = ('<tspan class="acc">█<animate attributeName="fill-opacity" values="1;0" '
               'dur="1.1s" calcMode="discrete" repeatCount="indefinite"/></tspan>')
-    out.append(render_row([("> ", "key")], top + i * LINE, cursor, extra_chars=1))
+    out.append(render_row([("> ", "acc")], top + i * LINE, cursor, extra_chars=1))
     return "\n".join(out), (i + 1) * LINE
 
 
-# --- Logo art -----------------------------------------------------------------
-def build_art(top: float, height: float, c: dict) -> str:
+# --- Picture ------------------------------------------------------------------
+def colored_row(chars: str, tones: str, cls_prefix: str = "t") -> str:
+    """Runs of one tone become one tspan; spaces join whichever run they sit in."""
+    out, run, run_tone = [], "", None
+    for ch, t in zip(chars, tones):
+        if ch != " " and t != run_tone and run:
+            out.append(f'<tspan class="{cls_prefix}{run_tone}">{esc(run)}</tspan>' if run_tone else esc(run))
+            run = ""
+        if ch != " ":
+            run_tone = t
+        run += ch
+    if run:
+        out.append(f'<tspan class="{cls_prefix}{run_tone}">{esc(run)}</tspan>' if run_tone else esc(run))
+    return "".join(out)
+
+
+def build_art(height: float, c: dict) -> str:
     rng = random.Random(7)              # fixed seed: the art doesn't churn each day
-    rows = int(height // ART_LH)
-    y0 = top + (height - rows * ART_LH) / 2
-    logo = bitmap(SP_LOGO)
-    lc0 = (ART_COLS - len(logo[0]) * 4) // 2
-    lr0 = (rows - len(logo) * 2) // 2
+    total = int(height // ART_LH) + 1
+    off = max(0, total - ART["rows"])   # grid row where the picture starts
+    field_w = PANEL_X - 12
+    field_cols = int(field_w // ART_CW)
 
-    logo_cells = set()
-    for py, line in enumerate(logo):
-        for px, ch in enumerate(line):
-            if ch != "#":
-                continue
-            for dx in range(4):
-                for dy in range(2):
-                    corner = ROUNDED.get((px, py))
-                    if dy == 0 and ((corner == "top-left" and dx == 0) or
-                                    (corner == "top-right" and dx == 3)):
-                        continue
-                    logo_cells.add((lc0 + px * 4 + dx, lr0 + py * 2 + dy))
+    def row_y(r: int) -> float:         # rows are counted up from the card's bottom
+        return height - (total - r) * ART_LH + ART_LH * 0.78
 
-    def near_logo(col: int, row: int) -> bool:
-        return any((col + dx, row + dy) in logo_cells for dx in range(-3, 4) for dy in range(-2, 3))
+    def in_figure(col: int, r: int) -> bool:
+        pr = r - off
+        return 0 <= pr < ART["rows"] and 0 <= col < ART["cols"] and ART["tones"][pr][col] != "."
 
-    field_rows, logo_rows, field_cells = [], [], []
-    for r in range(rows):
-        y = num(y0 + r * ART_LH + ART_LH * 0.78)
-        f, l = [], []
-        for col in range(ART_COLS):
-            if (col, r) in logo_cells:
-                f.append(" ")
-                l.append(rng.choice(LOGO_GLYPHS))
-            elif near_logo(col, r):
-                f.append(" ")
-                l.append(" ")
-            else:
-                g = rng.choice(FIELD_GLYPHS)
-                f.append(g)
-                l.append(" ")
-                field_cells.append((col, r, g, y))
-        x = xs(PAD, ART_CW, ART_COLS)
-        field_rows.append(f'<text x="{x}" y="{y}">{esc("".join(f))}</text>')
-        if "".join(l).strip():
-            logo_rows.append(f'<text x="{x}" y="{y}">{esc("".join(l))}</text>')
+    field_rows, field_cells = [], []
+    for r in range(total):
+        y = row_y(r)
+        if y < 0:
+            continue
+        line = []
+        for col in range(field_cols):
+            busy = any(in_figure(col + dx, r + dy) for dx in (-1, 0, 1) for dy in (-1, 0, 1))
+            g = " " if busy else rng.choice(FIELD_GLYPHS)
+            line.append(g)
+            if g != " ":
+                field_cells.append((col, y, g))
+        field_rows.append(f'<text x="{xs(0, ART_CW, field_cols)}" y="{num(y)}">{esc("".join(line))}</text>')
 
-    # A few field glyphs light up now and then, like the site background.
+    art_rows, plain_rows, eye = [], [], []
+    for pr, (chars, tones) in enumerate(zip(ART["chars"], ART["tones"])):
+        if not chars.strip():
+            continue
+        y = num(row_y(pr + off))
+        x = xs(0, ART_CW, len(chars))
+        art_rows.append(f'<text x="{x}" y="{y}">{colored_row(chars, tones)}</text>')
+        plain_rows.append(f'<text x="{x}" y="{y}">{esc(chars)}</text>')
+        eye += [(col * ART_CW, row_y(pr + off)) for col, t in enumerate(tones) if t == "e"]
+
+    # Field glyphs light up now and then, in both colours.
     flickers = []
-    for col, r, g, y in rng.sample(field_cells, 42):
-        dur = rng.uniform(5, 11)
+    for i, (col, y, g) in enumerate(rng.sample(field_cells, min(46, len(field_cells)))):
         flickers.append(
-            f'<text x="{num(PAD + col * ART_CW)}" y="{y}" fill="{c["flash"]}" opacity="0">{esc(g)}'
+            f'<text x="{num(col * ART_CW)}" y="{num(y)}" fill="{c["flash"][i % 2]}" opacity="0">{esc(g)}'
             f'<animate attributeName="opacity" values="0;0;.95;0" keyTimes="0;.8;.84;1" '
-            f'dur="{dur:.1f}s" begin="{rng.uniform(0, 8):.1f}s" repeatCount="indefinite"/></text>')
+            f'dur="{rng.uniform(5, 11):.1f}s" begin="{rng.uniform(0, 8):.1f}s" repeatCount="indefinite"/></text>')
 
-    lx, ly = PAD + lc0 * ART_CW, y0 + lr0 * ART_LH
-    lw, lh = len(logo[0]) * 4 * ART_CW, len(logo) * 2 * ART_LH
-    cx, cy = lx + lw / 2, ly + lh / 2
-    a, b, e = c["logo"]
+    img_top = row_y(off) - ART_LH * 0.78
+    if eye:
+        ex = sum(x for x, _ in eye) / len(eye) + ART_CW / 2
+        ey = sum(y for _, y in eye) / len(eye) - ART_LH * 0.3
+    else:
+        ex, ey = IMG_W / 2, (img_top + height) / 2
+    tone_css = "\n".join(f".t{k} {{fill: {v};}}" for k, v in c["tones"].items())
 
-    return f"""<defs>
+    return f"""<style>
+{tone_css}
+.te {{animation: eye 2.6s ease-in-out infinite;}}
+@keyframes eye {{50% {{fill: {c['acc']};}}}}
+</style>
+<defs>
+<clipPath id="card"><rect width="{CARD_W}" height="{num(height)}" rx="14"/></clipPath>
 <g id="field">{"".join(field_rows)}</g>
-<g id="logo">{"".join(logo_rows)}</g>
-<linearGradient id="logoFill" gradientUnits="userSpaceOnUse" x1="{num(lx)}" y1="{num(ly)}" x2="{num(lx + lw)}" y2="{num(ly + lh)}">
-  <stop offset="0" stop-color="{a}"/><stop offset=".55" stop-color="{b}"/><stop offset="1" stop-color="{e}"/>
-</linearGradient>
-<linearGradient id="sheen" gradientUnits="userSpaceOnUse" x1="{num(lx - 110)}" y1="{num(ly)}" x2="{num(lx)}" y2="{num(ly + 70)}">
-  <stop offset="0" stop-color="#fff" stop-opacity="0"/><stop offset=".5" stop-color="#fff" stop-opacity=".85"/><stop offset="1" stop-color="#fff" stop-opacity="0"/>
-  <animateTransform attributeName="gradientTransform" type="translate" values="0 0;{num(lw + 110)} 0;{num(lw + 110)} 0" keyTimes="0;.22;1" dur="7s" begin="1.4s" repeatCount="indefinite"/>
-</linearGradient>
-<radialGradient id="fadeGrad" cx=".5" cy=".5" r=".6">
-  <stop offset=".45" stop-color="#fff"/><stop offset="1" stop-color="#000"/>
+<radialGradient id="fieldGrad" cx=".45" cy=".4" r=".65">
+  <stop offset=".35" stop-color="#fff"/><stop offset="1" stop-color="#000"/>
 </radialGradient>
-<mask id="fade" maskUnits="userSpaceOnUse" x="{PAD}" y="{num(top)}" width="{ART_W}" height="{num(height)}">
-  <rect x="{PAD}" y="{num(top)}" width="{ART_W}" height="{num(height)}" fill="url(#fadeGrad)"/>
+<mask id="fieldFade" maskUnits="userSpaceOnUse" x="0" y="0" width="{num(field_w)}" height="{num(height)}">
+  <rect width="{num(field_w)}" height="{num(height)}" fill="url(#fieldGrad)"/>
 </mask>
-<filter id="soft" filterUnits="userSpaceOnUse" x="{PAD}" y="{num(top)}" width="{ART_W}" height="{num(height)}">
+<linearGradient id="topGrad" gradientUnits="userSpaceOnUse" x1="0" y1="{num(img_top)}" x2="0" y2="{num(img_top + 70)}">
+  <stop offset="0" stop-color="#000"/><stop offset="1" stop-color="#fff"/>
+</linearGradient>
+<linearGradient id="rightGrad" gradientUnits="userSpaceOnUse" x1="{num(IMG_W - 70)}" y1="0" x2="{num(IMG_W)}" y2="0">
+  <stop offset="0" stop-color="#fff"/><stop offset="1" stop-color="#000"/>
+</linearGradient>
+<mask id="rightFade" maskUnits="userSpaceOnUse" x="0" y="0" width="{CARD_W}" height="{num(height)}">
+  <rect width="{num(IMG_W)}" height="{num(height)}" fill="url(#rightGrad)"/>
+</mask>
+<mask id="artFade" maskUnits="userSpaceOnUse" x="0" y="0" width="{CARD_W}" height="{num(height)}">
+  <g mask="url(#rightFade)"><rect width="{num(IMG_W)}" height="{num(height)}" fill="url(#topGrad)"/></g>
+</mask>
+<linearGradient id="sheen" gradientUnits="userSpaceOnUse" x1="-130" y1="{num(img_top)}" x2="0" y2="{num(img_top + 90)}">
+  <stop offset="0" stop-color="#fff" stop-opacity="0"/><stop offset=".5" stop-color="#fff" stop-opacity=".7"/><stop offset="1" stop-color="#fff" stop-opacity="0"/>
+  <animateTransform attributeName="gradientTransform" type="translate" values="0 0;{num(IMG_W + 260)} 0;{num(IMG_W + 260)} 0" keyTimes="0;.24;1" dur="8s" begin="1.4s" repeatCount="indefinite"/>
+</linearGradient>
+<filter id="soft" filterUnits="userSpaceOnUse" x="0" y="0" width="{CARD_W}" height="{num(height)}">
   <feGaussianBlur stdDeviation="7"/>
 </filter>
-<mask id="ripple" maskUnits="userSpaceOnUse" x="{PAD}" y="{num(top)}" width="{ART_W}" height="{num(height)}">
-  <circle cx="{num(cx)}" cy="{num(cy)}" r="0" fill="none" stroke="#fff" stroke-width="30" filter="url(#soft)">
-    <animate attributeName="r" values="60;380;380" keyTimes="0;.42;1" dur="6s" begin="3s" repeatCount="indefinite"/>
-    <animate attributeName="stroke-opacity" values="1;0;0" keyTimes="0;.42;1" dur="6s" begin="3s" repeatCount="indefinite"/>
+<mask id="ripple" maskUnits="userSpaceOnUse" x="0" y="0" width="{num(field_w)}" height="{num(height)}">
+  <circle cx="{num(ex)}" cy="{num(ey)}" r="0" fill="none" stroke="#fff" stroke-width="30" filter="url(#soft)">
+    <animate attributeName="r" values="20;440;440" keyTimes="0;.45;1" dur="6s" begin="2.6s" repeatCount="indefinite"/>
+    <animate attributeName="stroke-opacity" values="1;0;0" keyTimes="0;.45;1" dur="6s" begin="2.6s" repeatCount="indefinite"/>
   </circle>
 </mask>
 </defs>
-<g mask="url(#fade)" font-size="{num(ART_FONT)}px">
-  <use href="#field" fill="{c['field']}" opacity="{c['field_opacity']}"/>
-  <g mask="url(#ripple)"><use href="#field" fill="{c['flash']}"/></g>
-  {"".join(flickers)}
-</g>
-<g font-size="{num(ART_FONT)}px" font-weight="bold">
-  <use href="#logo" fill="url(#logoFill)"/>
-  <use href="#logo" fill="url(#sheen)"/>
+<g clip-path="url(#card)" font-size="{num(ART_FONT)}px">
+  <g mask="url(#fieldFade)">
+    <use href="#field" fill="{c['field']}" opacity="{c['field_opacity']}"/>
+    <g mask="url(#ripple)"><use href="#field" fill="{c['acc']}" opacity=".9"/></g>
+    {"".join(flickers)}
+  </g>
+  <circle cx="{num(ex)}" cy="{num(ey)}" r="14" fill="{c['acc']}" opacity=".25" filter="url(#soft)">
+    <animate attributeName="opacity" values=".1;.6;.1" dur="2.6s" repeatCount="indefinite"/>
+  </circle>
+  <g mask="url(#artFade)" font-weight="bold">
+    {"".join(art_rows)}
+    <g fill="url(#sheen)">{"".join(plain_rows)}</g>
+  </g>
 </g>"""
 
 
@@ -318,14 +352,15 @@ def build_card(theme: str) -> str:
     top = PAD + 6
     panel, panel_h = build_panel(top + PANEL_FONT)
     height = round(top + panel_h + PAD)
-    art = build_art(PAD, height - 2 * PAD, c)
+    art = build_art(height, c)
     return f"""<svg xmlns="http://www.w3.org/2000/svg" width="{CARD_W}" height="{height}" viewBox="0 0 {CARD_W} {height}" font-family="{FONT}">
 <title>{esc(CFG['title'])}</title>
 <style>
 text {{white-space: pre;}}
 .panel {{fill: {c['fg']};}}
 .key {{fill: {c['key']};}}
-.title {{fill: {c['key']}; font-weight: bold;}}
+.title {{fill: {c['acc']}; font-weight: bold;}}
+.acc {{fill: {c['acc']};}}
 .value {{fill: {c['value']};}}
 .dots {{fill: {c['dots']};}}
 .add {{fill: {c['add']};}}
@@ -425,7 +460,7 @@ def icon_markup(name: str, accent: str) -> str:
 def build_button(theme: str, slot: int) -> str:
     c = THEMES[theme]
     name, label = CFG["buttons"][slot]
-    accent = {"portfolio": c["key"], "linkedin": c["linkedin"], "email": c["email"]}[name]
+    accent = {"portfolio": c["acc"], "linkedin": c["key"], "email": c["key"]}[name]
     x = slot * GAP / BTN_COUNT      # where this button sits inside its share of the row
     art = bitmap(ICONS[name])
     icon_w, icon_h = len(art[0]) * PX, len(art) * PX
