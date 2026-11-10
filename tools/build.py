@@ -181,7 +181,7 @@ def short(n: int) -> str:
 
 
 def stats(compact: bool = False) -> dict[str, str]:
-    names = ("repos", "contributed", "stars", "commits", "followers", "loc", "added", "deleted")
+    names = ("repos", "contributed", "stars", "commits", "contributions", "followers", "loc", "added", "deleted")
     raw = json.loads(STATS.read_text()) if STATS.exists() else {}
     fmt = short if compact else (lambda n: f"{n:,}")
     return {k: fmt(raw[k]) if isinstance(raw.get(k), int) else "--" for k in names}
@@ -204,8 +204,8 @@ def panel_rows() -> list[list | None]:
                  (st["repos"], "value"), (" {", None), ("Contributed", "key"), (": ", None),
                  (st["contributed"], "value"), ("} | ", None), *key("Stars"), (": ", None),
                  Fill(), (" ", None), (st["stars"], "value")])
-    rows.append([(". ", "dots"), *key("Commits"), (": ", None), Fill(), (" ", None),
-                 (st["commits"], "value"), (" | ", None), *key("Followers"), (": ", None),
+    rows.append([(". ", "dots"), *key("Contributions"), (": ", None), Fill(), (" ", None),
+                 (st["contributions"], "value"), (" | ", None), *key("Followers"), (": ", None),
                  Fill(), (" ", None), (st["followers"], "value")])
     def loc_row(st: dict) -> list:
         return [(". ", "dots"), *key("Lines of Code"), (": ", None), Fill(), (" ", None),
