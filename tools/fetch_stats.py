@@ -95,7 +95,10 @@ query($login: String!, $cursor: String) {
 COMMITS_Q = """
 query($login: String!, $from: DateTime!, $to: DateTime!) {
   user(login: $login) {
-    contributionsCollection(from: $from, to: $to) { totalCommitContributions }
+    contributionsCollection(from: $from, to: $to) {
+      totalCommitContributions
+      contributionCalendar { totalContributions }
+    }
   }
 }
 """
@@ -126,18 +129,26 @@ def user_and_repos() -> tuple[dict, list[dict]]:
         cursor = page["endCursor"]
 
 
-def total_commits(since: str) -> int:
+def contributions(since: str) -> tuple[int, int]:
+    """(public commits, all contributions) since the account was made.
+
+    The second number matches the total on your GitHub profile: commits, PRs,
+    issues and reviews, plus private work if "Private contributions" is turned
+    on in your profile settings (GitHub shows those as anonymous counts).
+    """
     # GitHub only answers one year at a time here.
     start = datetime.fromisoformat(since.replace("Z", "+00:00"))
     now = datetime.now(timezone.utc)
-    total = 0
+    commits = total = 0
     while start < now:
         end = min(start.replace(year=start.year + 1, day=min(start.day, 28)), now)
         c = gql(COMMITS_Q, login=LOGIN,
                 **{"from": start.isoformat(), "to": end.isoformat()})
-        total += c["user"]["contributionsCollection"]["totalCommitContributions"]
+        cc = c["user"]["contributionsCollection"]
+        commits += cc["totalCommitContributions"]
+        total += cc["contributionCalendar"]["totalContributions"]
         start = end
-    return total
+    return commits, total
 
 
 def count_repo(name: str, author_id: str) -> tuple[int, int]:
@@ -202,11 +213,13 @@ def main() -> None:
 
     user, repos = user_and_repos()
     added, deleted, skipped = lines_of_code(repos, user["id"])
+    commits, total = contributions(user["createdAt"])
     stats = {
         "repos": user["repositories"]["totalCount"],
         "contributed": user["repositoriesContributedTo"]["totalCount"],
         "stars": sum(r["stargazerCount"] for r in repos),
-        "commits": total_commits(user["createdAt"]),
+        "commits": commits,
+        "contributions": total,
         "followers": user["followers"]["totalCount"],
         "loc": added - deleted,
         "added": added,
